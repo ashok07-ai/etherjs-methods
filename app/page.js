@@ -1,95 +1,132 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { ethers } from "ethers";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  // State to store various Ethereum data
+  const [transaction, setTransaction] = useState([]);
+  const [balance, setBalance] = useState("0");
+  const [gasPrice, setGasPrice] = useState("0");
+  const [latestBlock, setLatestBlock] = useState(0);
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  // Ethereum address to interact with
+  const address = "0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5";
+
+  // Initialize provider
+  const provider = new ethers.EtherscanProvider(
+    "homestead",
+    process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY // Your Etherscan API key from environment variables
+  );
+
+  // Fetch account balance
+  const fetchBalance = async () => {
+    try {
+      const balance = await provider.getBalance(address);
+      const formattedBalance = ethers.formatEther(balance);
+      setBalance(formattedBalance);
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+    }
+  };
+
+  // Fetch gas price
+  const fetchGasPrice = async () => {
+    try {
+      const gasPrice = await provider.getGasPrice();
+      const formattedGasPrice = ethers.formatUnits(gasPrice, "gwei"); // Convert gas price to Gwei for readability
+      setGasPrice(formattedGasPrice);
+    } catch (error) {
+      console.error("Error fetching gas price:", error);
+    }
+  };
+
+  // Fetch the latest block number
+  const fetchLatestBlock = async () => {
+    try {
+      const latestBlock = await provider.getBlockNumber();
+      setLatestBlock(latestBlock);
+    } catch (error) {
+      console.error("Error fetching latest block:", error);
+    }
+  };
+
+  // Fetch transaction count for an address
+  const fetchTransactionCount = async () => {
+    try {
+      const transactionCount = await provider.getTransactionCount(address);
+      console.log("Transaction Count:", transactionCount);
+    } catch (error) {
+      console.error("Error fetching transaction count:", error);
+    }
+  };
+
+  // Fetch transaction details by hash
+  const fetchTransactionDetails = async () => {
+    try {
+      // Fetch block details for a specific block number (e.g., block 20765185)
+      const blockDetails = await provider.getBlock(20765185);
+      const blockTransactions = blockDetails.transactions;
+      if (blockTransactions.length !== 0) {
+        setTransaction(blockTransactions);
+      }
+      console.log("Transactions:", transaction);
+    } catch (error) {
+      console.error("Error fetching transaction details:", error);
+    }
+  };
+
+  // Fetch block and transaction details
+  const fetchBlockTransactions = async (blockNumber) => {
+    try {
+      const blockDetails = await provider.getBlock(blockNumber);
+      console.log("Block Details:", blockDetails);
+
+      const blockTransactions = blockDetails.transactions;
+      if (blockTransactions.length !== 0) {
+        setTransaction(blockTransactions);
+      }
+    } catch (error) {
+      console.error("Error fetching block transactions:", error);
+    }
+  };
+
+  // Main function to fetch all Ethereum data
+  const fetchEthereumData = async () => {
+    await fetchBalance();
+    await fetchGasPrice();
+    await fetchLatestBlock();
+    await fetchTransactionCount();
+    await fetchTransactionDetails();
+    await fetchBlockTransactions(latestBlock); // Fetch transactions from the latest block
+  };
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchEthereumData();
+  }, []);
+
+  return (
+    <div>
+      <h3>Ethereum Account Balance:</h3>
+      <p>{balance} ETH</p>
+
+      <h4>Current Gas Price:</h4>
+      <p>{gasPrice} Gwei</p>
+
+      <h4>Latest Block Number:</h4>
+      <p>{latestBlock}</p>
+
+      <h4>Recent Transactions:</h4>
+      {transaction.length > 0 ? (
+        transaction.map((txHash, index) => (
+          <div key={index}>
+            <h6>Transaction Hash: {txHash}</h6>
+          </div>
+        ))
+      ) : (
+        <p>No transactions found in the specified block.</p>
+      )}
     </div>
   );
 }
